@@ -7,7 +7,9 @@ import edu.wpi.first.wpilibj.DigitalInput;
  * configuration of the robot.
  */
 public final class HardwareMap {
+
 	public static final int CAN_ID_SPARK_SHOOTER = 0;
+	
 	//swerve module CAN ID's
 	public static final int CAN_ID_FRONT_LEFT_DRIVE = 0; //THIS IS A PLACEHOLDER
 	public static final int CAN_ID_FRONT_LEFT_TURN = 1; //THIS IS A PLACEHOLDER
