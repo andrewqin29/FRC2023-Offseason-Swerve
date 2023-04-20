@@ -65,7 +65,7 @@ public class SwerveModule {
             config.unitString = "rad";
             config.sensorTimeBase = SensorTimeBase.PerSecond;
             config.absoluteSensorRange = AbsoluteSensorRange.Signed_PlusMinus180;
-            cancoder.configAllSettings(config);
+            absoluteEncoder.configAllSettings(config);
 
             //pid turning controller
             turningPIDController = new PIDController(P_TURNING, 0, 0);
