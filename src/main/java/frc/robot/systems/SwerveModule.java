@@ -2,7 +2,10 @@ package frc.robot.systems;
 
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.RelativeEncoder;
-import com.ctre.phoenix.sensors.CANCoder.CANCoder;
+import com.ctre.phoenix.sensors.AbsoluteSensorRange;
+import com.ctre.phoenix.sensors.CANCoder;
+import com.ctre.phoenix.sensors.CANCoderConfiguration;
+import com.ctre.phoenix.sensors.SensorTimeBase;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
 import edu.wpi.first.math.controller.PIDController;
@@ -19,12 +22,12 @@ public class SwerveModule {
     private final PIDController turningPIDController;
     private final RelativeEncoder driveEncoder, turnEncoder;
 
-    private final AnalogInput absoluteEncoder;
+    private final CANCoder absoluteEncoder;
     private final boolean isAbsoluteEncoderReversed;
     private final double absoluteEncoderOffset;
 
     //constants
-    private static final double P_TURNING = 0.5;
+    private static final double P_TURNING = 0.5; //PID turning P constant, needs to be tuned
     private static final double WHEEL_DIAMETER = Units.inchesToMeters(4); //assuming standard mk4 billet wheels
     private static final double TURNING_GEAR_RATIO = 1 / 12.8;
     private static final double DRIVE_GEAR_RATIO = 1 / 8.14; //assuming L1 gear ratio
@@ -35,7 +38,7 @@ public class SwerveModule {
     private static final double MOTOR_PHYSICAL_MAX_SPEED_MPS = 12.0; //assuming L1 gear ratio, NEO unadjusted free speed
     
     public SwerveModule(int driveMotorId, int turnMotorId, boolean driveMotorReversed, boolean turningMotorReversed,
-        int absoluteEncoderId, boolean reversed, double offset) {
+        CANCoder cancoder, boolean absoluteEncoderReversed, double absoluteEncoderOffset) {
 
             //motors
             driveMotor = new CANSparkMax(driveMotorId, MotorType.kBrushless);
@@ -53,9 +56,16 @@ public class SwerveModule {
             turnEncoder.setVelocityConversionFactor(TURNING_ENCODER_RPM2RPS);
 
             //absolute encoder
-            absoluteEncoderOffset = offset;
-            isAbsoluteEncoderReversed = reversed;
-            absoluteEncoder = new AnalogInput(absoluteEncoderId);
+            this.absoluteEncoderOffset = absoluteEncoderOffset;
+            this.isAbsoluteEncoderReversed = absoluteEncoderReversed;
+            absoluteEncoder = cancoder;
+
+            CANCoderConfiguration config = new CANCoderConfiguration();
+            config.sensorCoefficient = 2 * Math.PI / 4096.0;
+            config.unitString = "rad";
+            config.sensorTimeBase = SensorTimeBase.PerSecond;
+            config.absoluteSensorRange = AbsoluteSensorRange.Signed_PlusMinus180;
+            cancoder.configAllSettings(config);
 
             //pid turning controller
             turningPIDController = new PIDController(P_TURNING, 0, 0);
@@ -66,12 +76,16 @@ public class SwerveModule {
 
     public void resetEncoders() {
         driveEncoder.setPosition(0);
-        turnEncoder.setPosition(getAbsoluteEncoderPosition());
+        turnEncoder.setPosition(getAbsoluteEncoderPositionInRadians());
     }
 
-    public double getAbsoluteEncoderPosition() {
-        //not implemented yet, figure it out
-        return -1;
+    public double getAbsoluteEncoderPositionInRadians() {
+        double angleRadians = absoluteEncoder.getAbsolutePosition();
+        angleRadians -= absoluteEncoderOffset;
+        if(isAbsoluteEncoderReversed) {
+            return -angleRadians;
+        }
+        return angleRadians;
     }
 
     public void setState(SwerveModuleState state) {
@@ -87,5 +101,14 @@ public class SwerveModule {
 
     public SwerveModuleState getCurrentState() {
         return new SwerveModuleState(driveEncoder.getVelocity(), new Rotation2d(turnEncoder.getPosition()));
+    }
+
+    public static double getPhysicalMaxSpeed() {
+        return MOTOR_PHYSICAL_MAX_SPEED_MPS;
+    }
+
+    public void stop() {
+        driveMotor.set(0);
+        turnMotor.set(0);
     }
 }
