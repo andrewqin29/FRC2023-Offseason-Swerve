@@ -58,7 +58,7 @@ public class SwerveModule {
             //absolute encoder
             this.absoluteEncoderOffset = absoluteEncoderOffset;
             this.isAbsoluteEncoderReversed = absoluteEncoderReversed;
-            absoluteEncoder = cancoder;
+            absoluteEncoder = cancoder; 
 
             CANCoderConfiguration config = new CANCoderConfiguration();
             config.sensorCoefficient = 2 * Math.PI / 4096.0;
@@ -80,6 +80,7 @@ public class SwerveModule {
     }
 
     public double getAbsoluteEncoderPositionInRadians() {
+        //this may be wrong?
         double angleRadians = absoluteEncoder.getAbsolutePosition();
         angleRadians -= absoluteEncoderOffset;
         if(isAbsoluteEncoderReversed) {
